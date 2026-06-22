@@ -1,26 +1,130 @@
+/* Fonts: Cabinet Grotesk + Satoshi (Fontshare), Space Mono (Google).
+   TODO prod: migrar a next/font/local (self-host) para mejor performance. */
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800,900&f[]=satoshi@400,500,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 @import "tailwindcss";
 
+@theme {
+  --color-ink: #0a0708;
+  --color-ink-2: #110c0e;
+  --color-ink-3: #1a1316;
+  --color-blood: #e11530;
+  --color-blood-bright: #ff2a44;
+  --color-carmine: #a11346;
+  --color-grape: #7b2d8e;
+  --color-bone: #f4efef;
+  --color-ash: #9a8c8f;
+  --color-ash-2: #6b5f62;
+
+  --font-display: "Cabinet Grotesk", sans-serif;
+  --font-sans: "Satoshi", sans-serif;
+  --font-mono: "Space Mono", monospace;
+
+  --container-8xl: 90rem;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --brand: linear-gradient(120deg, #ff2a44 0%, #c0123f 42%, #7b2d8e 100%);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html { background: #0a0708; }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #0a0708;
+  color: #f4efef;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
+::selection { background: #e11530; color: #fff; }
+
+/* Brand gradient text/fill */
+.text-gradient {
+  background: var(--brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.bg-brand { background: var(--brand); }
+
+/* Film grain overlay */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #0a0708; }
+::-webkit-scrollbar-thumb { background: #2a1f22; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #a11346; }
+
+/* Hero radial wash */
+.hero-wash {
+  background:
+    radial-gradient(120% 90% at 50% 30%, transparent 38%, rgba(10,7,8,.55) 72%, #0a0708 100%),
+    linear-gradient(180deg, rgba(10,7,8,.55) 0%, transparent 22%, transparent 55%, #0a0708 100%);
+}
+
+/* Marquee */
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee-track { animation: marquee 32s linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
+/* Hero entrance — CSS-driven so content never depends on the JS ticker to be visible */
+@keyframes heroIn { from { opacity: 0; transform: translateY(42px); } to { opacity: 1; transform: none; } }
+[data-hero] { animation: heroIn 1s cubic-bezier(.16,1,.3,1) both; }
+[data-hero]:nth-child(1) { animation-delay: .10s; }
+[data-hero]:nth-child(2) { animation-delay: .24s; }
+[data-hero]:nth-child(3) { animation-delay: .40s; }
+[data-hero]:nth-child(4) { animation-delay: .56s; }
+
+/* JS-gated reveals/words: hidden only once the app hydrates, so no-JS stays visible */
+.has-js .reveal { opacity: 0; transform: translateY(34px); }
+.has-js .word { opacity: .12; transition: opacity .15s; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-hero] { animation: none; }
+  .has-js .reveal { opacity: 1; transform: none; }
+  .has-js .word { opacity: 1; }
+}
+
+/* Team card hover */
+.member img { transition: transform .9s cubic-bezier(.16,1,.3,1), filter .6s ease; }
+.member:hover img { transform: scale(1.06); filter: saturate(1.1) contrast(1.05); }
+.member .bio { max-height: 0; opacity: 0; transition: max-height .5s ease, opacity .4s ease; }
+.member:hover .bio { max-height: 130px; opacity: 1; }
+
+/* Animated underline link */
+.link-underline {
+  background-image: linear-gradient(#e11530, #e11530);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size .35s ease;
+}
+.link-underline:hover { background-size: 100% 1px; }
+
+.glow-blood { box-shadow: 0 0 0 1px rgba(225,21,48,.4), 0 18px 60px -22px rgba(225,21,48,.7); }
+
+/* Custom cursor — desktop / fine pointer only, active once <CustomCursor/> mounts */
+@media (hover: hover) and (pointer: fine) {
+  .has-cursor, .has-cursor * { cursor: none; }
+  #cursor-ring, #cursor-dot {
+    position: fixed; top: 0; left: 0; z-index: 90; pointer-events: none;
+    border-radius: 999px; mix-blend-mode: difference; will-change: transform;
+  }
+  #cursor-ring {
+    width: 38px; height: 38px; margin: -19px 0 0 -19px; border: 1px solid rgba(244,239,239,.7);
+    transition: width .3s, height .3s, margin .3s, background-color .3s, border-color .3s;
+  }
+  #cursor-dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: #f4efef; }
+  #cursor-ring.is-active { width: 66px; height: 66px; margin: -33px 0 0 -33px; background: rgba(244,239,239,.14); border-color: transparent; }
+}
+@media not all and (pointer: fine) { #cursor-ring, #cursor-dot { display: none; } }
+.magnetic { will-change: transform; }
