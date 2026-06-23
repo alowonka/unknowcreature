@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 import Magnetic from "./Magnetic";
+import { getDictionary } from "@/app/i18n";
 
 export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
+  const t = getDictionary().hero;
 
   const toggleSound = () => {
     const v = videoRef.current;
@@ -43,7 +45,7 @@ export default function Hero() {
           onClick={toggleSound}
           className="absolute z-10 bottom-5 right-5 flex items-center gap-2 rounded-full border border-white/10 bg-ink-2/60 backdrop-blur px-4 py-2 text-[11px] font-mono uppercase tracking-widest text-ash hover:text-bone transition"
         >
-          {muted ? "Sound off" : "Sound on"}
+          {muted ? t.soundOff : t.soundOn}
         </button>
       </div>
 
@@ -53,23 +55,23 @@ export default function Hero() {
           data-hero
           className="font-mono text-[11px] md:text-xs tracking-[0.45em] text-ash uppercase mb-6"
         >
-          Est. 2024 — Mérida <span className="text-blood">&times;</span> Houston
+          {t.eyebrowPre} <span className="text-blood">{t.eyebrowSeparator}</span>{" "}
+          {t.eyebrowPost}
         </p>
         <h1
           data-hero
           className="font-display font-black uppercase leading-[0.92] tracking-[-0.02em]"
           style={{ fontSize: "clamp(2.7rem, 7vw, 6rem)" }}
         >
-          We give shape<br className="hidden sm:block" /> to the{" "}
-          <span className="text-gradient">unknown</span>
+          {t.title}
+          <br className="hidden sm:block" /> {t.titleLineTwo}{" "}
+          <span className="text-gradient">{t.titleHighlight}</span>
         </h1>
         <p
           data-hero
           className="mx-auto mt-7 max-w-2xl text-base md:text-lg text-ash leading-relaxed"
         >
-          A Mexican-American game studio crafting original worlds, unforgettable
-          creatures, and games that teach — built by five Yucatecans who have
-          been at this for two decades.
+          {t.description}
         </p>
         <div
           data-hero
@@ -80,7 +82,7 @@ export default function Hero() {
               href="#notify"
               className="block rounded-full bg-brand px-8 py-4 text-sm font-semibold text-white glow-blood"
             >
-              Get notified about the launch
+              {t.ctaPrimary}
             </a>
           </Magnetic>
           <Magnetic>
@@ -88,7 +90,7 @@ export default function Hero() {
               href="#studio"
               className="block rounded-full border border-white/15 bg-white/5 px-8 py-4 text-sm font-semibold text-bone hover:bg-white/10 transition-colors backdrop-blur-sm"
             >
-              Meet the studio
+              {t.ctaSecondary}
             </a>
           </Magnetic>
         </div>
@@ -97,7 +99,7 @@ export default function Hero() {
       {/* scroll cue */}
       <div className="shrink-0 pb-7 flex flex-col items-center gap-2 text-ash-2">
         <span className="font-mono text-[10px] tracking-[0.3em] uppercase">
-          Scroll
+          {t.scroll}
         </span>
         <span className="h-9 w-px bg-gradient-to-b from-blood to-transparent animate-pulse" />
       </div>

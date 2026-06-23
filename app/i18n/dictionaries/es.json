@@ -1,0 +1,248 @@
+{
+  "nav": {
+    "links": [
+      {
+        "label": "[ES] Studio"
+      },
+      {
+        "label": "[ES] What we do"
+      },
+      {
+        "label": "[ES] Team"
+      },
+      {
+        "label": "[ES] The Game"
+      }
+    ],
+    "logoAlt": "[ES] Unknown Creature Games",
+    "cta": "[ES] Get notified"
+  },
+  "hero": {
+    "eyebrowPre": "[ES] Est. 2024 — Mérida",
+    "eyebrowSeparator": "[ES] ×",
+    "eyebrowPost": "[ES] Houston",
+    "soundOff": "[ES] Sound off",
+    "soundOn": "[ES] Sound on",
+    "title": "[ES] We give shape",
+    "titleLineTwo": "[ES] to the",
+    "titleHighlight": "[ES] unknown",
+    "description": "[ES] A Mexican-American game studio crafting original worlds, unforgettable creatures, and games that teach — built by five Yucatecans who have been at this for two decades.",
+    "ctaPrimary": "[ES] Get notified about the launch",
+    "ctaSecondary": "[ES] Meet the studio",
+    "scroll": "[ES] Scroll"
+  },
+  "stats": {
+    "items": [
+      {
+        "value": "[ES] 2005",
+        "label": "[ES] Roots in Mérida"
+      },
+      {
+        "value": "[ES] 20",
+        "valueSuffix": "[ES] +",
+        "label": "[ES] Years of craft"
+      },
+      {
+        "value": "[ES] 5",
+        "label": "[ES] Yucatecan creators"
+      },
+      {
+        "value": "[ES] 2",
+        "label": "[ES] Countries · MX × US"
+      }
+    ]
+  },
+  "marquee": {
+    "items": [
+      "[ES] Original Games",
+      "[ES] Educational Games",
+      "[ES] Character Design",
+      "[ES] Comics & Story",
+      "[ES] Animation",
+      "[ES] Worldbuilding"
+    ]
+  },
+  "manifesto": {
+    "eyebrow": "[ES] Who we are",
+    "body": "[ES] For two decades we drew monsters, wrote impossible worlds, and shipped them under other names. Unknown Creature is the banner we finally raise as our own — a studio for original games, characters, and stories that honor where we come from."
+  },
+  "whatWeDo": {
+    "headingLineOne": "[ES] Many crafts.",
+    "headingHighlight": "[ES] One creature.",
+    "originalGames": {
+      "eyebrow": "[ES] Our reason to exist",
+      "title": "[ES] Original games",
+      "text": "[ES] Worlds, creatures, and stories born entirely in-house — our first original title is in production now."
+    },
+    "educationalGames": {
+      "eyebrow": "[ES] Serious play",
+      "title": "[ES] Educational games",
+      "text": "[ES] We turn complex knowledge into experiences students actually want to play — currently building edugames for universities across Bolivia and Belgium."
+    },
+    "smallCards": [
+      {
+        "title": "[ES] Characters & story",
+        "text": "[ES] Two decades of comics, character design, and narrative across Mexico, the US, and Europe."
+      },
+      {
+        "title": "[ES] Animation & art",
+        "text": "[ES] Hand-crafted motion and illustration that finally gives the unknown a face."
+      },
+      {
+        "title": "[ES] Engineering",
+        "text": "[ES] Full-stack systems, AI, and the production tech that keeps the studio shipping."
+      }
+    ]
+  },
+  "studio": {
+    "eyebrow": "[ES] The studio",
+    "headingLineOne": "[ES] From Mérida",
+    "headingLineTwo": "[ES] to Houston",
+    "description": "[ES] Five Yucatecans, one studio, two countries. We honor our roots while building for a global audience.",
+    "timeline": [
+      {
+        "year": "[ES] 2005",
+        "bodyPre": "[ES] Our story traces back to",
+        "bodyHighlight": "[ES] My Pet Stone",
+        "bodyPost": "[ES] , one of the earliest graphic design and illustration studios in Mérida — where most of us first met and learned the craft."
+      },
+      {
+        "year": "[ES] 2016",
+        "bodyPre": "[ES] Benjamín Carbonero dreams up",
+        "bodyHighlight": "[ES] Unknown Creature",
+        "bodyPost": "[ES]  — a concept and a creature that would eventually pull the whole team under one banner."
+      },
+      {
+        "year": "[ES] 2024",
+        "bodyPre": "[ES] Unknown Creature Games is formally founded in Mérida, Yucatán, with a business center in",
+        "bodyHighlight": "[ES] Houston, Texas",
+        "bodyPost": "[ES]  leading international operations."
+      },
+      {
+        "year": "[ES] 2026",
+        "bodyPre": "[ES] We embark on our",
+        "bodyHighlight": "[ES] first original game",
+        "bodyPost": "[ES]  — the first time we share all of our creative talent with the world under our own name."
+      }
+    ],
+    "bannerAlt": "[ES] The Unknown Creature Games team",
+    "bannerCaption": "[ES] The team — Mérida, Yucatán"
+  },
+  "team": {
+    "headingLineOne": "[ES] The people",
+    "headingHighlight": "[ES] behind it",
+    "description": "[ES] Designers, illustrators, animators, and an engineer — together for over two decades.",
+    "members": [
+      {
+        "role": "[ES] Founder",
+        "name": "[ES] Benjamín Carbonero",
+        "title": "[ES] Creative Director · Writer",
+        "bioPre": "[ES] 26 years across comics, games, and film — including work with Kevin Grevioux, creator of",
+        "bioHighlight": "[ES] Underworld",
+        "bioPost": "[ES] ."
+      },
+      {
+        "role": "[ES] Art",
+        "name": "[ES] Alonso Pérez Cervera",
+        "title": "[ES] Art Director · Graphic Designer",
+        "bio": "[ES] Mexican illustrator and designer known as Jaxinto — 20+ years across illustration, branding, comics, and character design, from Mérida."
+      },
+      {
+        "role": "[ES] Characters",
+        "name": "[ES] José Cobá Herrera",
+        "title": "[ES] Character & Visual Development",
+        "bio": "[ES] 15+ years designing characters and interfaces for educational and entertainment games."
+      },
+      {
+        "role": "[ES] Illustration",
+        "name": "[ES] Juan Fleites",
+        "title": "[ES] Illustrator & Animator",
+        "bio": "[ES] Horror, sci-fi, and humor across indie comics in Mexico, the US, and Europe."
+      },
+      {
+        "role": "[ES] Engineering",
+        "name": "[ES] Diego Salazar",
+        "title": "[ES] Technical Director",
+        "bio": "[ES] Full-stack architect with 10+ years building scalable systems, AI, and the tech behind the studio."
+      }
+    ],
+    "careers": {
+      "logoAlt": "[ES] Unknown Creature Games",
+      "title": "[ES] Want to build the unknown with us?",
+      "cta": "[ES] Say hello"
+    }
+  },
+  "game": {
+    "eyebrow": "[ES] In production",
+    "headingLineOne": "[ES] Something is",
+    "headingHighlight": "[ES] taking shape",
+    "description": "[ES] Our first original game is in the works. An original story, an original world, and a creature all our own.",
+    "buttonLabel": "[ES] Hold to wake the creature",
+    "isoAlt": "[ES] Unknown Creature",
+    "holdLabelIdle": "[ES] Hold to wake the creature",
+    "holdLabelWaking": "[ES] Waking…",
+    "holdLabelDonePre": "[ES] The creature stirs.",
+    "holdLabelDoneHighlight": "[ES] First look 2026."
+  },
+  "notify": {
+    "headingLineOne": "[ES] Be the first",
+    "headingLineTwo": "[ES] to",
+    "headingHighlight": "[ES] know",
+    "description": "[ES] Drop your email and we will tell you the moment our first game — and everything around it — goes live.",
+    "placeholder": "[ES] you@studio.com",
+    "submitIdle": "[ES] Notify me",
+    "submitLoading": "[ES] Sending…",
+    "successPre": "[ES] Thanks — you're on the list. We'll reach out from",
+    "successEmail": "[ES] hello@unknowncreature.com",
+    "successPost": "[ES] .",
+    "error": "[ES] Something went wrong — please try again.",
+    "languageNote": "[ES] English now · Español pronto"
+  },
+  "footer": {
+    "logoAlt": "[ES] Unknown Creature Games",
+    "tagline": "[ES] A Mexican-American game studio. We are all Yucatecans, honoring our roots while leaving a mark on the entertainment industry.",
+    "email": "[ES] hello@unknowncreature.com",
+    "phone": "[ES] +1 (346) 900-6599",
+    "exploreHeading": "[ES] Explore",
+    "exploreLinks": [
+      {
+        "label": "[ES] Studio"
+      },
+      {
+        "label": "[ES] What we do"
+      },
+      {
+        "label": "[ES] Team"
+      },
+      {
+        "label": "[ES] The Game"
+      }
+    ],
+    "followHeading": "[ES] Follow",
+    "followLinks": [
+      {
+        "label": "[ES] Instagram"
+      },
+      {
+        "label": "[ES] Facebook"
+      }
+    ],
+    "studiosHeading": "[ES] Studios",
+    "studios": [
+      {
+        "city": "[ES] Mérida, Yucatán",
+        "country": "[ES] MX"
+      },
+      {
+        "city": "[ES] Houston, Texas",
+        "country": "[ES] US"
+      }
+    ],
+    "copyright": "[ES] © 2026 Unknown Creature Games. All rights reserved.",
+    "signature": "[ES] We give shape to the unknown"
+  },
+  "metadata": {
+    "title": "[ES] Unknown Creature Games — A Mexican-American Game Studio",
+    "description": "[ES] Unknown Creature Games is a Mexican-American studio crafting original worlds, unforgettable creatures, and educational games. Built by five Yucatecans, from Mérida to Houston."
+  }
+}

@@ -1,13 +1,10 @@
 import Magnetic from "./Magnetic";
+import { getDictionary } from "@/app/i18n";
 
-const links = [
-  { href: "#studio", label: "Studio" },
-  { href: "#craft", label: "What we do" },
-  { href: "#team", label: "Team" },
-  { href: "#game", label: "The Game" },
-];
+const hrefs = ["#studio", "#craft", "#team", "#game"];
 
 export default function Nav() {
+  const t = getDictionary().nav;
   return (
     <header className="fixed top-0 inset-x-0 z-50">
       <div className="mx-auto max-w-8xl px-5 md:px-8 py-4">
@@ -16,15 +13,15 @@ export default function Nav() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-horizontal.png"
-              alt="Unknown Creature Games"
+              alt={t.logoAlt}
               className="h-10 md:h-12 w-auto"
             />
           </a>
           <div className="hidden lg:flex items-center gap-9 text-sm text-ash">
-            {links.map((l) => (
+            {t.links.map((l, i) => (
               <a
-                key={l.href}
-                href={l.href}
+                key={hrefs[i]}
+                href={hrefs[i]}
                 className="link-underline hover:text-bone transition-colors"
               >
                 {l.label}
@@ -36,7 +33,7 @@ export default function Nav() {
               href="#notify"
               className="group flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white"
             >
-              Get notified
+              {t.cta}
               <span className="transition-transform duration-300 group-hover:translate-x-1">
                 &rarr;
               </span>

@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 import SmoothScroll from "./components/SmoothScroll";
 import CustomCursor from "./components/CustomCursor";
+import { getDictionary } from "@/app/i18n";
+
+const meta = getDictionary().metadata;
 
 export const metadata: Metadata = {
-  title: "Unknown Creature Games — A Mexican-American Game Studio",
-  description:
-    "Unknown Creature Games is a Mexican-American studio crafting original worlds, unforgettable creatures, and educational games. Built by five Yucatecans, from Mérida to Houston.",
+  title: meta.title,
+  description: meta.description,
 };
 
 export default function RootLayout({
