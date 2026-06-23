@@ -2,8 +2,8 @@ import { getDictionary } from "@/app/i18n";
 
 const exploreHrefs = ["#studio", "#craft", "#team", "#game"];
 const followHrefs = [
-  "https://www.instagram.com/unknowcreaturegames/",
-  "https://www.facebook.com/unknowcreaturegames",
+  "https://www.instagram.com/unknowncreaturegames/",
+  "https://www.facebook.com/unknowncreaturegames",
 ];
 
 export default function Footer() {
