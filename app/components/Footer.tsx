@@ -21,7 +21,7 @@ export default function Footer() {
             />
             <p className="text-ash leading-relaxed">{t.tagline}</p>
             <a
-              href="mailto:hello@unknowncreature.com"
+              href="mailto:hello@unknowncreaturegames.com"
               className="mt-6 block w-fit font-display text-lg md:text-xl text-bone link-underline"
             >
               {t.email}

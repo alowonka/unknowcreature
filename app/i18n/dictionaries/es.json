@@ -193,7 +193,7 @@
     "submitIdle": "[ES] Notify me",
     "submitLoading": "[ES] Sending…",
     "successPre": "[ES] Thanks — you're on the list. We'll reach out from",
-    "successEmail": "[ES] hello@unknowncreature.com",
+    "successEmail": "[ES] hello@unknowncreaturegames.com",
     "successPost": "[ES] .",
     "error": "[ES] Something went wrong — please try again.",
     "languageNote": "[ES] English now · Español pronto"
@@ -201,7 +201,7 @@
   "footer": {
     "logoAlt": "[ES] Unknown Creature Games",
     "tagline": "[ES] A Mexican-American game studio. We are all Yucatecans, honoring our roots while leaving a mark on the entertainment industry.",
-    "email": "[ES] hello@unknowncreature.com",
+    "email": "[ES] hello@unknowncreaturegames.com",
     "phone": "[ES] +1 (346) 900-6599",
     "exploreHeading": "[ES] Explore",
     "exploreLinks": [
