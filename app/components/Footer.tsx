@@ -27,7 +27,7 @@ export default function Footer() {
               {t.email}
             </a>
             <a
-              href="tel:+13469006599"
+              href="tel:+12818465669"
               className="mt-2 block w-fit font-display text-base md:text-lg text-ash hover:text-bone transition-colors link-underline"
             >
               {t.phone}
