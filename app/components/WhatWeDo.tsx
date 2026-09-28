@@ -1,6 +1,6 @@
 import { getDictionary } from "@/app/i18n";
 
-const smallCardImages = ["/craft/characters.jpg", "/craft/animation.jpg", "/craft/engineering.jpg"];
+const smallCardImages = ["/craft/zombie-sketch.jpg", "/craft/artist-drawing.jpg", "/craft/engineering.jpg"];
 
 export default function WhatWeDo() {
   const t = getDictionary().whatWeDo;
@@ -71,7 +71,7 @@ export default function WhatWeDo() {
             >
               <div
                 className="absolute inset-0 opacity-45 group-hover:opacity-65 transition-opacity duration-700"
-                style={{ background: `url('${smallCardImages[i]}') center/cover`, filter: "saturate(.9) contrast(1.05)" }}
+                style={{ background: `url('${smallCardImages[i]}') ${i === 0 ? "center 60%" : "center"}/cover`, filter: "saturate(.9) contrast(1.05)" }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/75 to-ink/20" />
               <div className="relative">
