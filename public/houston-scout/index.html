@@ -59,7 +59,7 @@ canvas{display:block;width:100%;height:100%}
     <label class="row">Grosor<input autocomplete="off" id="lw" type="range" min="0.5" max="4" step="0.1" value="1.4"><output></output></label>
     <label class="row">Pliegues<input autocomplete="off" id="crease" type="range" min="10" max="80" step="1" value="35"><output></output></label>
     <label class="row">Trama<select autocomplete="off" id="pat"><option value="0">Puntos</option><option value="1">Rayado</option><option value="2">Cruzado</option></select><span></span></label>
-    <label class="row">Tamaño<input autocomplete="off" id="cell" type="range" min="3" max="14" step="0.5" value="4"><output></output></label>
+    <label class="row">Tamaño<input autocomplete="off" id="cell" type="range" min="1.5" max="14" step="0.5" value="2.5"><output></output></label>
     <label class="row">Sombra<input autocomplete="off" id="toneS" type="range" min="0" max="1" step="0.05" value="0.55"><output></output></label>
     <label class="row">Color propio<input autocomplete="off" id="toneC" type="range" min="0" max="1" step="0.05" value="0.35"><output></output></label>
     <label class="row">Negro sólido<input autocomplete="off" id="beta" type="range" min="0" max="0.5" step="0.01" value="0.12"><output></output></label>
@@ -188,7 +188,7 @@ const compMat = new THREE.ShaderMaterial({
     tC: { value: rtC.texture }, tS: { value: rtS.texture },
     res: { value: new THREE.Vector2() }, near: { value: camera.near }, far: { value: camera.far },
     mode: { value: 3 }, lw: { value: 1.4 }, creaseCos: { value: Math.cos(35 * Math.PI / 180) },
-    depthK: { value: 0.06 }, cell: { value: 4 }, pat: { value: 0 },
+    depthK: { value: 0.06 }, cell: { value: 2.5 }, pat: { value: 0 },
     toneS: { value: 0.55 }, toneC: { value: 0.35 }, beta: { value: 0.12 }, dpr: { value: 1 },
     sky: { value: new THREE.Color(0xcfe1f2) }, haze: { value: new THREE.Color(0xdbe5ee) }
   },
