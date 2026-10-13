@@ -43,8 +43,8 @@ canvas{display:block;width:100%;height:100%}
   <p class="sub">Barrios reales de Houston en 3D, dibujados como fondo de manga.</p>
 
   <div class="grp"><b>Lugar</b>
-    <select id="area"></select>
-    <div class="ll"><input id="lat" type="text" placeholder="Latitud"><input id="lon" type="text" placeholder="Longitud"></div>
+    <select autocomplete="off" id="area"></select>
+    <div class="ll"><input autocomplete="off" id="lat" type="text" placeholder="Latitud"><input autocomplete="off" id="lon" type="text" placeholder="Longitud"></div>
     <button class="btn" id="go">Cargar coordenadas (OSM en vivo)</button>
   </div>
 
@@ -56,24 +56,24 @@ canvas{display:block;width:100%;height:100%}
   </div>
 
   <div class="grp"><b>Línea y trama</b>
-    <label class="row">Grosor<input id="lw" type="range" min="0.5" max="4" step="0.1" value="1.4"><output></output></label>
-    <label class="row">Pliegues<input id="crease" type="range" min="10" max="80" step="1" value="35"><output></output></label>
-    <label class="row">Trama<select id="pat"><option value="0">Puntos</option><option value="1">Rayado</option><option value="2">Cruzado</option></select><span></span></label>
-    <label class="row">Tamaño<input id="cell" type="range" min="3" max="14" step="0.5" value="6"><output></output></label>
-    <label class="row">Sombra<input id="toneS" type="range" min="0" max="1" step="0.05" value="0.55"><output></output></label>
-    <label class="row">Color propio<input id="toneC" type="range" min="0" max="1" step="0.05" value="0.35"><output></output></label>
-    <label class="row">Negro sólido<input id="beta" type="range" min="0" max="0.5" step="0.01" value="0.12"><output></output></label>
-    <label class="chk"><input id="win" type="checkbox" checked> Ventanas en fachadas</label>
+    <label class="row">Grosor<input autocomplete="off" id="lw" type="range" min="0.5" max="4" step="0.1" value="1.4"><output></output></label>
+    <label class="row">Pliegues<input autocomplete="off" id="crease" type="range" min="10" max="80" step="1" value="35"><output></output></label>
+    <label class="row">Trama<select autocomplete="off" id="pat"><option value="0">Puntos</option><option value="1">Rayado</option><option value="2">Cruzado</option></select><span></span></label>
+    <label class="row">Tamaño<input autocomplete="off" id="cell" type="range" min="3" max="14" step="0.5" value="4"><output></output></label>
+    <label class="row">Sombra<input autocomplete="off" id="toneS" type="range" min="0" max="1" step="0.05" value="0.55"><output></output></label>
+    <label class="row">Color propio<input autocomplete="off" id="toneC" type="range" min="0" max="1" step="0.05" value="0.35"><output></output></label>
+    <label class="row">Negro sólido<input autocomplete="off" id="beta" type="range" min="0" max="0.5" step="0.01" value="0.12"><output></output></label>
+    <label class="chk"><input autocomplete="off" id="win" type="checkbox" checked> Ventanas en fachadas</label>
   </div>
 
   <div class="grp"><b>Sol</b>
-    <label class="row">Dirección<input id="az" type="range" min="0" max="360" step="1" value="225"><output></output></label>
-    <label class="row">Altura<input id="el" type="range" min="5" max="85" step="1" value="38"><output></output></label>
-    <label class="chk"><input id="shadows" type="checkbox" checked> Sombras proyectadas</label>
+    <label class="row">Dirección<input autocomplete="off" id="az" type="range" min="0" max="360" step="1" value="225"><output></output></label>
+    <label class="row">Altura<input autocomplete="off" id="el" type="range" min="5" max="85" step="1" value="38"><output></output></label>
+    <label class="chk"><input autocomplete="off" id="shadows" type="checkbox" checked> Sombras proyectadas</label>
   </div>
 
   <div class="grp"><b>Cámara</b>
-    <label class="row">Lente<input id="lens" type="range" min="14" max="85" step="1" value="28"><output></output></label>
+    <label class="row">Lente<input autocomplete="off" id="lens" type="range" min="14" max="85" step="1" value="28"><output></output></label>
     <button class="btn" id="preset" hidden>Vista de la foto</button>
     <button class="btn" id="aerial">Vista aérea</button>
     <button class="btn" id="street">Nivel de calle (centro)</button>
@@ -100,7 +100,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const AREAS = {
-  skyline: ['Skyline desde White Oak Bayou', 29.765, -95.3685, { cam: [29.7754, -95.3659, 16], look: [29.7585, -95.3683, 100], lens: 50, sun: [70, 32] }],
+  skyline: ['Skyline desde White Oak Bayou', 29.765, -95.3685, { cam: [29.7754, -95.3659, 32], look: [29.7585, -95.3683, 50], lens: 50, sun: [70, 32] }],
   downtown: ['Downtown (aérea)', 29.765, -95.3685, { cam: [29.7505, -95.3795, 420], look: [29.7595, -95.3665, 40], lens: 28, sun: [225, 38] }, 'skyline'], midtown: ['Midtown', 29.7428, -95.3780], montrose: ['Montrose', 29.7442, -95.3906],
   uptown: ['Uptown / Galleria', 29.7499, -95.4613], tmc: ['Texas Medical Center', 29.7068, -95.3990], heights: ['The Heights', 29.7980, -95.3990],
   'i10-i45': ['Freeway · I-10 / I-45', 29.7690, -95.3700], 'i10-i69': ['Freeway · I-10 / I-69', 29.7675, -95.3530],
@@ -123,7 +123,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, 1, 1.5, 6000);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.maxPolarAngle = Math.PI * 0.499;
+controls.maxPolarAngle = Math.PI * 0.6;   // allow looking up at towers from street level
 
 const hemi = new THREE.HemisphereLight(0xdfe9ff, 0xb9b2a4, 1.6);
 const sun = new THREE.DirectionalLight(0xffffff, 3.2);
@@ -188,7 +188,7 @@ const compMat = new THREE.ShaderMaterial({
     tC: { value: rtC.texture }, tS: { value: rtS.texture },
     res: { value: new THREE.Vector2() }, near: { value: camera.near }, far: { value: camera.far },
     mode: { value: 3 }, lw: { value: 1.4 }, creaseCos: { value: Math.cos(35 * Math.PI / 180) },
-    depthK: { value: 0.06 }, cell: { value: 6 }, pat: { value: 0 },
+    depthK: { value: 0.06 }, cell: { value: 4 }, pat: { value: 0 },
     toneS: { value: 0.55 }, toneC: { value: 0.35 }, beta: { value: 0.12 }, dpr: { value: 1 },
     sky: { value: new THREE.Color(0xcfe1f2) }, haze: { value: new THREE.Color(0xdbe5ee) }
   },
@@ -807,7 +807,11 @@ function renderFrame() {
   renderer.setRenderTarget(null); renderer.render(quadScene, quadCam);
   scene.background = bg;
 }
-function loop() { controls.update(); renderFrame(); requestAnimationFrame(loop); }
+function loop() {
+  controls.update();
+  if (camera.position.y < 1.2) camera.position.y = 1.2;   // never below the ground
+  renderFrame(); requestAnimationFrame(loop);
+}
 
 // ---------- UI ----------
 const U = compMat.uniforms;
@@ -854,6 +858,7 @@ $('go').onclick = async () => {
 
 window.scout = { camera, controls, THREE }; // handy for debugging from the console
 resize();
+$('area').value = 'skyline';
 show(await loadArea('skyline')).catch(e => status('Error: ' + e.message));
 loop();
 </script>
