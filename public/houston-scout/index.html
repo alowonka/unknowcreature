@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Houston Location Scout</title>
+<style>
+:root{--bg:#f4f3ef;--panel:#ffffff;--ink:#16181d;--mute:#6b6f78;--line:#dcdad3;--acc:#c2410c;--accInk:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121418;--panel:#1b1e24;--ink:#e9eaee;--mute:#9aa0ab;--line:#2c3038;--acc:#f97316;--accInk:#111}}
+:root[data-theme="dark"]{--bg:#121418;--panel:#1b1e24;--ink:#e9eaee;--mute:#9aa0ab;--line:#2c3038;--acc:#f97316;--accInk:#111}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+.app{display:grid;grid-template-columns:300px 1fr;height:100vh}
+aside{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:16px}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--mute);font-size:12px;margin:0 0 14px}
+.grp{border-top:1px solid var(--line);padding:12px 0}
+.grp>b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:8px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.seg button,.btn{border:1px solid var(--line);background:transparent;color:var(--ink);padding:7px 8px;border-radius:6px;cursor:pointer;font:inherit;font-size:13px}
+.seg button.on{background:var(--acc);border-color:var(--acc);color:var(--accInk)}
+.btn{width:100%;margin-top:6px}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--accInk)}
+label.row{display:grid;grid-template-columns:96px 1fr 40px;align-items:center;gap:6px;margin:6px 0;font-size:13px}
+label.row output{text-align:right;color:var(--mute);font-variant-numeric:tabular-nums}
+label.chk{display:flex;gap:6px;align-items:center;margin:6px 0;font-size:13px}
+select,input[type=text]{width:100%;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.ll{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px}
+main{position:relative;overflow:hidden;background:#fff}
+canvas{display:block;width:100%;height:100%}
+#status{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.72);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;pointer-events:none}
+#status:empty{display:none}
+.hint{position:absolute;right:12px;bottom:10px;font-size:11px;color:#555;background:rgba(255,255,255,.8);padding:3px 6px;border-radius:4px}
+.note{font-size:12px;color:var(--mute)}
+@media (max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:55vh auto;height:auto}main{order:-1;height:55vh}aside{border-right:0}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <h1>Houston Location Scout</h1>
+  <p class="sub">Barrios reales de Houston en 3D, dibujados como fondo de manga.</p>
+
+  <div class="grp"><b>Lugar</b>
+    <select id="area"></select>
+    <div class="ll"><input id="lat" type="text" placeholder="Latitud"><input id="lon" type="text" placeholder="Longitud"></div>
+    <button class="btn" id="go">Cargar coordenadas (OSM en vivo)</button>
+  </div>
+
+  <div class="grp"><b>Vista</b>
+    <div class="seg" id="modes">
+      <button data-m="0">Color</button><button data-m="1">Color + líneas</button>
+      <button data-m="2">Dibujo lineal</button><button data-m="3" class="on">Líneas + trama</button>
+    </div>
+  </div>
+
+  <div class="grp"><b>Línea y trama</b>
+    <label class="row">Grosor<input id="lw" type="range" min="0.5" max="4" step="0.1" value="1.4"><output></output></label>
+    <label class="row">Pliegues<input id="crease" type="range" min="10" max="80" step="1" value="35"><output></output></label>
+    <label class="row">Trama<select id="pat"><option value="0">Puntos</option><option value="1">Rayado</option><option value="2">Cruzado</option></select><span></span></label>
+    <label class="row">Tamaño<input id="cell" type="range" min="3" max="14" step="0.5" value="6"><output></output></label>
+    <label class="row">Sombra<input id="toneS" type="range" min="0" max="1" step="0.05" value="0.55"><output></output></label>
+    <label class="row">Color propio<input id="toneC" type="range" min="0" max="1" step="0.05" value="0.35"><output></output></label>
+    <label class="row">Negro sólido<input id="beta" type="range" min="0" max="0.5" step="0.01" value="0.12"><output></output></label>
+    <label class="chk"><input id="win" type="checkbox" checked> Ventanas en fachadas</label>
+  </div>
+
+  <div class="grp"><b>Sol</b>
+    <label class="row">Dirección<input id="az" type="range" min="0" max="360" step="1" value="225"><output></output></label>
+    <label class="row">Altura<input id="el" type="range" min="5" max="85" step="1" value="38"><output></output></label>
+    <label class="chk"><input id="shadows" type="checkbox" checked> Sombras proyectadas</label>
+  </div>
+
+  <div class="grp"><b>Cámara</b>
+    <label class="row">Lente<input id="lens" type="range" min="14" max="85" step="1" value="28"><output></output></label>
+    <button class="btn" id="aerial">Vista aérea</button>
+    <button class="btn" id="street">Nivel de calle (centro)</button>
+    <p class="note">Doble clic en el suelo para pararte ahí a 1.6 m, mirando en la misma dirección.</p>
+  </div>
+
+  <div class="grp"><b>Exportar</b>
+    <button class="btn pri" id="png">Descargar PNG</button>
+    <p class="note">Datos: © OpenStreetMap contributors (ODbL). Incluye el crédito si publicas.</p>
+  </div>
+</aside>
+<main>
+  <div id="status">Cargando…</div>
+  <div class="hint">Arrastra para girar · rueda para zoom · clic derecho para mover</div>
+</main>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const AREAS = {
+  downtown: ['Downtown', 29.7589, -95.3677], midtown: ['Midtown', 29.7428, -95.3780], montrose: ['Montrose', 29.7442, -95.3906],
+  uptown: ['Uptown / Galleria', 29.7499, -95.4613], tmc: ['Texas Medical Center', 29.7068, -95.3990], heights: ['The Heights', 29.7980, -95.3990]
+};
+const $ = id => document.getElementById(id);
+// works at /, /houston-scout and /houston-scout/index.html alike
+const BASE = location.pathname.replace(/\/?(index\.html)?$/, '/');
+const status = t => { $('status').textContent = t || ''; };
+
+// ---------- renderer / scene ----------
+const main = document.querySelector('main');
+const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+main.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 1.5, 6000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.499;
+
+const hemi = new THREE.HemisphereLight(0xdfe9ff, 0xb9b2a4, 1.6);
+const sun = new THREE.DirectionalLight(0xffffff, 3.2);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -700, right: 700, top: 700, bottom: -700, near: 10, far: 3000 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.6;
+scene.add(hemi, sun, sun.target);
+
+// ---------- render targets ----------
+const mkRT = (o = {}) => new THREE.WebGLRenderTarget(4, 4, o);
+const rtN = mkRT({ depthTexture: new THREE.DepthTexture(4, 4, THREE.FloatType) }); // view normals + depth
+const rtI = mkRT();             // object id (rgb) + facade ink (alpha)
+const rtC = mkRT({ samples: 4 }); // lit colour
+const rtS = mkRT();             // white clay lighting (shade) for tones
+
+const normalMat = new THREE.MeshNormalMaterial();
+const shadeMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+
+// id material: per-vertex id colour, per-instance id for trees, procedural window grid on walls
+const idMat = new THREE.ShaderMaterial({
+  uniforms: { uWin: { value: 1 } },
+  vertexShader: `
+    attribute vec3 idc; attribute float win;
+    varying vec3 vId; varying vec3 vW; varying vec3 vNW; varying float vWin;
+    void main(){
+      vec4 p = vec4(position, 1.0);
+      vId = idc;
+      #ifdef USE_INSTANCING
+        p = instanceMatrix * p;
+        float k = float(gl_InstanceID) + 1.0;
+        vId = vec3(mod(k, 256.0), mod(floor(k / 256.0), 256.0), 200.0) / 255.0;
+      #endif
+      vec4 w = modelMatrix * p;
+      vW = w.xyz; vNW = normalize(mat3(modelMatrix) * normal); vWin = win;
+      gl_Position = projectionMatrix * viewMatrix * w;
+    }`,
+  fragmentShader: `
+    uniform float uWin;
+    varying vec3 vId; varying vec3 vW; varying vec3 vNW; varying float vWin;
+    float grid(float x, float period){
+      float fw = max(fwidth(x), 1e-5);
+      float d = abs(fract(x / period + 0.5) - 0.5) * period;
+      float l = 1.0 - smoothstep(fw * 0.6, fw * 1.4, d);
+      return l * (1.0 - smoothstep(0.08, 0.2, fw / period)); // fade out when too dense (avoids moiré)
+    }
+    void main(){
+      float ink = 0.0;
+      if (uWin > 0.5 && vWin > 0.5 && abs(vNW.y) < 0.3 && vW.y > 4.0) {
+        vec2 t = normalize(vec2(-vNW.z, vNW.x));
+        float u = dot(vW.xz, t);
+        ink = max(grid(vW.y - 0.5, 3.6), grid(u, 3.2) * 0.85);
+      }
+      gl_FragColor = vec4(vId, 1.0 - ink);
+    }`
+});
+
+const compMat = new THREE.ShaderMaterial({
+  uniforms: {
+    tN: { value: rtN.texture }, tD: { value: rtN.depthTexture }, tI: { value: rtI.texture },
+    tC: { value: rtC.texture }, tS: { value: rtS.texture },
+    res: { value: new THREE.Vector2() }, near: { value: camera.near }, far: { value: camera.far },
+    mode: { value: 3 }, lw: { value: 1.4 }, creaseCos: { value: Math.cos(35 * Math.PI / 180) },
+    depthK: { value: 0.06 }, cell: { value: 6 }, pat: { value: 0 },
+    toneS: { value: 0.55 }, toneC: { value: 0.35 }, beta: { value: 0.12 }, dpr: { value: 1 },
+    sky: { value: new THREE.Color(0xcfe1f2) }, haze: { value: new THREE.Color(0xdbe5ee) }
+  },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+  fragmentShader: `
+    #include <packing>
+    uniform sampler2D tN, tD, tI, tC, tS;
+    uniform vec2 res; uniform float near, far, lw, creaseCos, depthK, cell, toneS, toneC, beta, dpr;
+    uniform int mode, pat; uniform vec3 sky, haze;
+    varying vec2 vUv;
+
+    float rawD(vec2 uv){ return texture2D(tD, uv).x; }
+    bool bg(vec2 uv){ return rawD(uv) >= 0.99999; }
+    float dist(vec2 uv){ return -perspectiveDepthToViewZ(rawD(uv), near, far); }
+    vec3 nrm(vec2 uv){ return texture2D(tN, uv).xyz * 2.0 - 1.0; }
+    vec3 lin2srgb(vec3 c){ c = clamp(c, 0.0, 1.0); return mix(c * 12.92, 1.055 * pow(c, vec3(1.0/2.4)) - 0.055, step(0.0031308, c)); }
+
+    // Is there an edge between this pixel and the one at offset o (pixels)? Lines are drawn on the near side only,
+    // so a single sample offset gives a one-sided stroke of width |o|.
+    float edgeDir(vec2 uv, vec2 o, float iz, vec3 n0, vec3 id0, bool own){
+      vec2 px = 1.0 / res, un = uv + o * px, um = uv - o * px;
+      if (bg(un)) return 1.0;                                   // silhouette against sky
+      float izn = 1.0 / dist(un), izm = bg(um) ? iz : 1.0 / dist(um);
+      // 1/z is linear across a plane in screen space: a big 2nd difference = depth discontinuity
+      if (abs(izn - 2.0 * iz + izm) / iz > depthK && iz > izn) return 1.0;
+      if (!own) return 0.0;                                     // creases & id borders: only one side owns the line
+      if (dot(n0, nrm(un)) < creaseCos) return 1.0;
+      if (any(greaterThan(abs(texture2D(tI, un).rgb - id0), vec3(0.6/255.0)))) return 1.0;
+      return 0.0;
+    }
+    float edges(vec2 uv, float r){
+      if (bg(uv)) return 0.0;
+      float iz = 1.0 / dist(uv); vec3 n0 = nrm(uv); vec3 id0 = texture2D(tI, uv).rgb;
+      vec2 d[4]; d[0] = vec2(1,0); d[1] = vec2(0,1); d[2] = vec2(0.7071,0.7071); d[3] = vec2(0.7071,-0.7071);
+      float e = 0.0;
+      for (int k = 0; k < 4; k++) {
+        e = max(e, edgeDir(uv,  d[k] * r, iz, n0, id0, true));
+        e = max(e, edgeDir(uv, -d[k] * r, iz, n0, id0, false));
+      }
+      return e;
+    }
+    // screentone: lev = ink coverage 0..1
+    float tone(float lev){
+      if (lev <= 0.002) return 0.0;
+      vec2 p = gl_FragCoord.xy / (cell * dpr);
+      if (pat == 0) {                                // 45° dot screen
+        p = vec2(p.x + p.y, p.x - p.y) * 0.7071;
+        float d = length(fract(p) - 0.5), r = sqrt(lev / 3.14159);
+        float aa = 0.7 / (cell * dpr);
+        float v = 1.0 - smoothstep(r - aa, r + aa, d);
+        return mix(v, lev, smoothstep(3.5, 2.0, cell * dpr));  // tiny cells -> flat grey, no moiré
+      }
+      float aa = 0.7 / (cell * dpr);
+      float a = abs(fract((p.x + p.y) * 0.7071) - 0.5);        // diagonal hatching
+      float h1 = 1.0 - smoothstep(lev * 0.5 - aa, lev * 0.5 + aa, a);
+      if (pat == 1) return h1;
+      float b = abs(fract((p.x - p.y) * 0.7071) - 0.5);        // cross hatch: second layer for darker values
+      float l2 = max(0.0, lev - 0.3) / 0.7;
+      float h2 = 1.0 - smoothstep(l2 * 0.5 - aa, l2 * 0.5 + aa, b);
+      return max(1.0 - smoothstep(min(lev, 0.3) * 0.6 - aa, min(lev, 0.3) * 0.6 + aa, a), h2);
+    }
+    void main(){
+      bool isBg = bg(vUv);
+      float d = isBg ? far : dist(vUv);
+      float line = 0.0;
+      if (mode != 0) {
+        float T = mix(lw, max(0.6, lw * 0.5), smoothstep(150.0, 1200.0, d)) * dpr;  // thinner far away
+        float r = max(1.0, T), a = min(1.0, T);
+        line = max(edges(vUv, r), edges(vUv, max(1.0, r * 0.5))) * a;
+        float fade = mix(1.0, 0.35, smoothstep(700.0, 2500.0, d));
+        line = max(line, 1.0 - texture2D(tI, vUv).a) * fade;
+      }
+      vec3 col;
+      if (mode <= 1) {
+        vec3 c = isBg ? sky : texture2D(tC, vUv).rgb;
+        if (!isBg) c = mix(c, haze, 1.0 - exp(-max(0.0, d - 400.0) / 2500.0));
+        col = isBg ? sky : lin2srgb(c);
+        if (mode == 1) col = mix(col, vec3(0.08), line);
+      } else {
+        float ink = line;
+        if (mode == 3 && !isBg) {
+          float s = texture2D(tS, vUv).r;                       // white-clay lighting
+          float shadeLev = smoothstep(0.95, 0.35, s) * toneS;   // shadowed -> more ink
+          float l = dot(lin2srgb(texture2D(tC, vUv).rgb), vec3(0.299, 0.587, 0.114));
+          float baseLev = smoothstep(0.85, 0.25, l) * toneC * 0.5;    // dark materials get a light tone
+          float lev = 1.0 - (1.0 - shadeLev) * (1.0 - baseLev);
+          ink = max(ink, tone(lev));
+          if (beta > 0.0) ink = max(ink, 1.0 - smoothstep(beta - 0.03, beta + 0.03, s * (1.0 - baseLev * 0.6))); // solid black in deepest shadow
+        }
+        col = mix(vec3(1.0), vec3(0.05), ink);
+      }
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+  depthTest: false, depthWrite: false
+});
+const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), compMat);
+const quadScene = new THREE.Scene(); quadScene.add(quad);
+const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+// ---------- geometry building ----------
+let city = new THREE.Group(); scene.add(city);
+let groundMeshes = [];
+let center = { lat: 29.7589, lon: -95.3677 };
+let radius = 450;
+
+function project(lat, lon) {
+  const x = (lon - center.lon) * 111320 * Math.cos(center.lat * Math.PI / 180);
+  const n = (lat - center.lat) * 110540;
+  return [x, n];
+}
+function rnd(seed) { let x = Math.sin(seed * 12.9898) * 43758.5453; return x - Math.floor(x); }
+function idColor(i) { return [(i & 255) / 255, ((i >> 8) & 255) / 255, ((i >> 16) & 127) / 255]; }
+
+function addAttrs(g, id, win) {
+  const n = g.attributes.position.count;
+  const c = idColor(id), a = new Float32Array(n * 3), w = new Float32Array(n).fill(win);
+  for (let i = 0; i < n; i++) a.set(c, i * 3);
+  g.setAttribute('idc', new THREE.BufferAttribute(a, 3));
+  g.setAttribute('win', new THREE.BufferAttribute(w, 1));
+  if (g.attributes.uv) g.deleteAttribute('uv');
+  return g;
+}
+function setColor(g, hex) {
+  const c = new THREE.Color(hex), n = g.attributes.position.count, a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) a.set([c.r, c.g, c.b], i * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(a, 3));
+  return g;
+}
+const ringArea = r => { let s = 0; for (let i = 0; i < r.length; i++) { const [x1, y1] = r[i], [x2, y2] = r[(i + 1) % r.length]; s += x1 * y2 - x2 * y1; } return s / 2; };
+
+// join open member ways of a multipolygon into closed rings
+function joinRings(ways) {
+  const segs = ways.map(w => w.slice()), rings = [];
+  const eq = (a, b) => Math.abs(a[0] - b[0]) < 1e-3 && Math.abs(a[1] - b[1]) < 1e-3;
+  while (segs.length) {
+    let ring = segs.shift(), guard = 0;
+    while (!eq(ring[0], ring[ring.length - 1]) && guard++ < 500) {
+      const i = segs.findIndex(s => eq(s[0], ring[ring.length - 1]) || eq(s[s.length - 1], ring[ring.length - 1]));
+      if (i < 0) break;
+      let s = segs.splice(i, 1)[0];
+      if (!eq(s[0], ring[ring.length - 1])) s = s.reverse();
+      ring = ring.concat(s.slice(1));
+    }
+    if (ring.length > 3) rings.push(ring);
+  }
+  return rings;
+}
+
+function guessHeight(tags, area, id) {
+  const p = v => { const f = parseFloat(String(v).replace(',', '.')); return isFinite(f) ? f : null; };
+  let h = p(tags.height) ?? p(tags['building:height']);
+  if (h == null && tags['building:levels']) h = p(tags['building:levels']) * 3.4 + 1;
+  if (h != null) return h;
+  const b = tags.building, r = rnd(id);
+  if (['house', 'detached', 'residential', 'semidetached_house', 'terrace'].includes(b)) return 5 + r * 4;
+  if (['garage', 'shed', 'roof', 'carport', 'hut'].includes(b)) return 3 + r;
+  if (b === 'apartments') return 10 + r * 12;
+  if (['office', 'commercial', 'hotel'].includes(b)) return 14 + r * 30;
+  if (b === 'parking') return 12 + r * 10;
+  if (area > 6000) return 12 + r * 14;
+  return 6 + r * 6;
+}
+
+const BCOL = [0xe6e0d4, 0xd9d4ca, 0xcfc9bd, 0xe9e4da, 0xc9c3b8, 0xd8cfc0, 0xb9c2cb, 0xc8ccd0];
+
+function build(data) {
+  scene.remove(city); city.traverse(o => { o.geometry?.dispose(); });
+  city = new THREE.Group(); scene.add(city);
+  const bGeo = [], roadGeo = [], walkGeo = [], parkGeo = [], waterGeo = [], trees = [];
+  let bid = 10;
+
+  const toShape = (outer, holes = []) => {
+    if (ringArea(outer) < 0) outer = outer.slice().reverse();
+    const s = new THREE.Shape(outer.map(([x, y]) => new THREE.Vector2(x, y)));
+    holes.forEach(h => { if (ringArea(h) > 0) h = h.slice().reverse(); s.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x, y)))); });
+    return s;
+  };
+  const inside = ([x, y]) => Math.abs(x) < radius * 1.15 && Math.abs(y) < radius * 1.15;
+
+  for (const el of data.elements) {
+    const t = el.tags || {};
+    let rings = [], holes = [];
+    if (el.type === 'way' && el.geometry) rings = [el.geometry.map(g => project(g.lat, g.lon))];
+    if (el.type === 'relation' && el.members) {
+      rings = joinRings(el.members.filter(m => m.role !== 'inner' && m.geometry).map(m => m.geometry.map(g => project(g.lat, g.lon))));
+      holes = joinRings(el.members.filter(m => m.role === 'inner' && m.geometry).map(m => m.geometry.map(g => project(g.lat, g.lon))));
+    }
+    if (el.type === 'node' && t.natural === 'tree') { const p = project(el.lat, el.lon); if (inside(p)) trees.push(p); continue; }
+
+    if (t.building || t['building:part']) {
+      if (t['building:part'] && !t.building && !t.height && !t['building:levels']) continue;
+      for (let ring of rings) {
+        if (ring.length < 4 || !inside(ring[0])) continue;
+        ring = ring.slice(0, -1);
+        const area = Math.abs(ringArea(ring));
+        if (area < 4) continue;
+        const h = guessHeight(t, area, el.id);
+        const minH = parseFloat(t.min_height) || 0;
+        const g = new THREE.ExtrudeGeometry(toShape(ring, holes.map(r => r.slice(0, -1))), { depth: Math.max(1, h - minH), bevelEnabled: false });
+        g.rotateX(-Math.PI / 2); g.translate(0, minH, 0);
+        const col = t['building:colour'] ? new THREE.Color(t['building:colour']).getHex() : BCOL[Math.floor(rnd(el.id + 3) * BCOL.length)];
+        bGeo.push(setColor(addAttrs(g.toNonIndexed ? g : g, bid++, 1), col));
+      }
+      continue;
+    }
+    if (t.highway && el.geometry && el.type === 'way') {
+      const W = { motorway: 15, trunk: 13, primary: 12, secondary: 11, tertiary: 9, residential: 7.5, unclassified: 7, living_street: 6, service: 4.5, motorway_link: 8, trunk_link: 8, primary_link: 8, secondary_link: 7, footway: 2.2, path: 1.8, cycleway: 2, pedestrian: 6, steps: 2 }[t.highway];
+      if (!W) continue;
+      const walk = ['footway', 'path', 'cycleway', 'pedestrian', 'steps'].includes(t.highway);
+      const bridge = t.bridge && t.bridge !== 'no';
+      const y = walk ? 0.14 : (bridge ? 7 : 0.1) + (parseInt(t.layer) > 0 && !bridge ? 0 : 0);
+      const pts = el.geometry.map(g => project(g.lat, g.lon));
+      (walk ? walkGeo : roadGeo).push(...ribbon(pts, W, y));
+      continue;
+    }
+    const isPark = /park|garden|pitch/.test(t.leisure || '') || /grass|recreation_ground/.test(t.landuse || '');
+    const isWater = t.natural === 'water';
+    if ((isPark || isWater) && rings.length) {
+      for (let ring of rings) {
+        if (ring.length < 4) continue;
+        const g = new THREE.ShapeGeometry(toShape(ring.slice(0, -1), holes.map(r => r.slice(0, -1))));
+        g.rotateX(-Math.PI / 2); g.translate(0, isWater ? 0.04 : 0.06, 0);
+        (isWater ? waterGeo : parkGeo).push(g);
+      }
+    }
+    if (t.waterway && el.geometry && ['river', 'stream', 'canal'].includes(t.waterway)) {
+      waterGeo.push(...ribbon(el.geometry.map(g => project(g.lat, g.lon)), t.waterway === 'river' ? 40 : 8, 0.04));
+    }
+  }
+
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const addMerged = (list, id, color, win, cast) => {
+    if (!list.length) return;
+    const gs = list.map(g => { if (g.index) g = g.toNonIndexed(); if (!g.attributes.idc) addAttrs(g, id, win); if (!g.attributes.color) setColor(g, color); return g; });
+    const m = new THREE.Mesh(mergeGeometries(gs), mat);
+    m.castShadow = cast; m.receiveShadow = true;
+    city.add(m); return m;
+  };
+  addMerged(bGeo.map(g => g.index ? g.toNonIndexed() : g), 0, 0xdddddd, 1, true);
+  addMerged(roadGeo, 2, 0x8d9096, 0, false);
+  addMerged(walkGeo, 3, 0xc4c0b6, 0, false);
+  addMerged(parkGeo, 4, 0x9dbb7c, 0, false);
+  addMerged(waterGeo, 5, 0x7aa6c8, 0, false);
+
+  const ground = new THREE.Mesh(addAttrs(setColor(new THREE.PlaneGeometry(8000, 8000).rotateX(-Math.PI / 2), 0xd7d3c8), 1, 0), mat);
+  ground.receiveShadow = true; city.add(ground);
+
+  if (trees.length) {
+    const crown = new THREE.IcosahedronGeometry(1, 1);
+    addAttrs(crown, 0, 0); setColor(crown, 0x5f8f4e);
+    const im = new THREE.InstancedMesh(crown, mat, trees.length);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
+    trees.forEach(([x, n], i) => {
+      const s = 3 + rnd(i + 7) * 2.5;
+      m4.compose(new THREE.Vector3(x, s * 1.1 + 2.5, -n), q, new THREE.Vector3(s, s * 0.9, s));
+      im.setMatrixAt(i, m4);
+    });
+    im.castShadow = im.receiveShadow = true; city.add(im);
+  }
+  status('');
+  const counts = `${bGeo.length} edificios · ${trees.length} árboles`;
+  console.log(counts);
+}
+
+// flat ribbon along a polyline, with round-ish joints
+function ribbon(pts, w, y) {
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x1, n1] = pts[i], [x2, n2] = pts[i + 1];
+    const dx = x2 - x1, dn = n2 - n1, L = Math.hypot(dx, dn); if (L < 0.01) continue;
+    const g = new THREE.PlaneGeometry(L, w).rotateX(-Math.PI / 2);
+    g.rotateY(Math.atan2(dn, dx)); g.translate((x1 + x2) / 2, y, -(n1 + n2) / 2);
+    out.push(g);
+    if (i > 0) out.push(new THREE.CircleGeometry(w / 2, 10).rotateX(-Math.PI / 2).translate(x1, y, -n1));
+  }
+  return out;
+}
+
+// ---------- data loading ----------
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+async function loadLive(lat, lon, R = 350) {
+  const dlat = R / 111320, dlon = R / (111320 * Math.cos(lat * Math.PI / 180));
+  const bb = `${lat - dlat},${lon - dlon},${lat + dlat},${lon + dlon}`;
+  const q = `[out:json][timeout:60];(way["building"](${bb});relation["building"](${bb});way["highway"](${bb});way["leisure"~"park|garden|pitch"](${bb});way["landuse"~"grass|recreation_ground"](${bb});way["natural"="water"](${bb});way["waterway"](${bb});node["natural"="tree"](${bb}););out geom;`;
+  for (const ep of OVERPASS) {
+    try {
+      const r = await fetch(ep, { method: 'POST', body: 'data=' + encodeURIComponent(q) });
+      if (r.ok) return { lat, lon, r: R, elements: (await r.json()).elements };
+    } catch (e) { /* try next mirror */ }
+  }
+  throw new Error('Overpass no respondió');
+}
+async function loadArea(key) {
+  const [name, lat, lon] = AREAS[key];
+  status('Cargando ' + name + '…');
+  try { const r = await fetch(`${BASE}data/${key}.json`); if (r.ok) return await r.json(); } catch (e) { /* no local copy */ }
+  status('Pidiendo ' + name + ' a OpenStreetMap…');
+  return loadLive(lat, lon, 450);
+}
+async function show(data) {
+  center = { lat: data.lat, lon: data.lon }; radius = data.r;
+  $('lat').value = data.lat.toFixed(5); $('lon').value = data.lon.toFixed(5);
+  status('Construyendo 3D…');
+  await new Promise(r => setTimeout(r, 20));
+  build(data);
+  aerial();
+}
+
+// ---------- camera ----------
+function aerial() {
+  camera.position.set(radius * 1.3, radius * 1.05, radius * 1.5);
+  controls.target.set(0, 20, 0); controls.update();
+}
+function standAt(x, z, dir) {
+  const d = dir || new THREE.Vector3(0, 0, -1);
+  d.y = 0; d.normalize();
+  camera.position.set(x, 1.6, z);
+  controls.target.set(x + d.x * 5, 1.6 + 0.6, z + d.z * 5); controls.update();
+}
+renderer.domElement.addEventListener('dblclick', e => {
+  const r = renderer.domElement.getBoundingClientRect();
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+  const hit = ray.intersectObjects(city.children, false).find(h => h.point.y < 1);
+  if (!hit) return;
+  const dir = new THREE.Vector3().subVectors(hit.point, camera.position);
+  standAt(hit.point.x, hit.point.z, dir);
+});
+
+// ---------- render loop ----------
+function setSun() {
+  const az = +$('az').value * Math.PI / 180, el = +$('el').value * Math.PI / 180;
+  // az: compass bearing the sun comes FROM (0 = north)
+  sun.position.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).multiplyScalar(1500);
+  sun.target.position.set(0, 0, 0);
+  renderer.shadowMap.enabled = $('shadows').checked;
+  sun.castShadow = $('shadows').checked;
+  scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });
+}
+function resize() {
+  const w = main.clientWidth, h = main.clientHeight, pr = renderer.getPixelRatio();
+  renderer.setSize(w, h);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  [rtN, rtI, rtC, rtS].forEach(t => t.setSize(w * pr, h * pr));
+  compMat.uniforms.res.value.set(w * pr, h * pr);
+  compMat.uniforms.dpr.value = pr;
+}
+new ResizeObserver(resize).observe(main);
+
+function renderFrame() {
+  const bg = scene.background;
+  scene.background = null;
+  renderer.setClearColor(0x000000, 0);
+  renderer.setRenderTarget(rtN); scene.overrideMaterial = normalMat; renderer.render(scene, camera);
+  renderer.setRenderTarget(rtI); scene.overrideMaterial = idMat; renderer.setClearColor(0x000000, 1); renderer.render(scene, camera);
+  renderer.setRenderTarget(rtS); scene.overrideMaterial = shadeMat; renderer.render(scene, camera);
+  renderer.setRenderTarget(rtC); scene.overrideMaterial = null; renderer.render(scene, camera);
+  renderer.setRenderTarget(null); renderer.render(quadScene, quadCam);
+  scene.background = bg;
+}
+function loop() { controls.update(); renderFrame(); requestAnimationFrame(loop); }
+
+// ---------- UI ----------
+const U = compMat.uniforms;
+const bind = (id, fn, fmt = v => v) => {
+  const el = $(id), out = el.parentElement.querySelector('output');
+  const f = () => { fn(+el.value); if (out) out.textContent = fmt(+el.value); };
+  el.addEventListener('input', f); f();
+};
+bind('lw', v => U.lw.value = v);
+bind('crease', v => U.creaseCos.value = Math.cos(v * Math.PI / 180), v => v + '°');
+bind('cell', v => U.cell.value = v);
+bind('toneS', v => U.toneS.value = v, v => Math.round(v * 100) + '%');
+bind('toneC', v => U.toneC.value = v, v => Math.round(v * 100) + '%');
+bind('beta', v => U.beta.value = v, v => Math.round(v * 100) + '%');
+bind('az', setSun, v => v + '°');
+bind('el', setSun, v => v + '°');
+bind('lens', v => { camera.fov = 2 * Math.atan(12 / v) * 180 / Math.PI; camera.updateProjectionMatrix(); }, v => v + 'mm');
+$('shadows').onchange = setSun;
+$('pat').onchange = e => U.pat.value = +e.target.value;
+$('win').onchange = e => idMat.uniforms.uWin.value = e.target.checked ? 1 : 0;
+$('modes').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...$('modes').children].forEach(x => x.classList.toggle('on', x === b));
+  U.mode.value = +b.dataset.m;
+};
+$('aerial').onclick = aerial;
+$('street').onclick = () => standAt(0, radius * 0.1, new THREE.Vector3(0, 0, -1));
+$('png').onclick = () => {
+  renderFrame();
+  const a = document.createElement('a');
+  a.href = renderer.domElement.toDataURL('image/png');
+  a.download = `houston-${$('area').value || 'custom'}.png`; a.click();
+};
+for (const [k, v] of Object.entries(AREAS)) $('area').add(new Option(v[0], k));
+$('area').onchange = async e => { try { await show(await loadArea(e.target.value)); } catch (err) { status('Error: ' + err.message); } };
+$('go').onclick = async () => {
+  const lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
+  if (!isFinite(lat) || !isFinite(lon)) return status('Coordenadas inválidas');
+  status('Pidiendo datos a OpenStreetMap…');
+  try { const d = await loadLive(lat, lon); $('area').value = ''; await show(d); }
+  catch (err) { status('Error: ' + err.message); }
+};
+
+resize();
+show(await loadArea('downtown')).catch(e => status('Error: ' + e.message));
+loop();
+</script>
+</body>
+</html>
