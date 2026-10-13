@@ -74,6 +74,7 @@ canvas{display:block;width:100%;height:100%}
 
   <div class="grp"><b>Cámara</b>
     <label class="row">Lente<input id="lens" type="range" min="14" max="85" step="1" value="28"><output></output></label>
+    <button class="btn" id="preset" hidden>Vista de la foto</button>
     <button class="btn" id="aerial">Vista aérea</button>
     <button class="btn" id="street">Nivel de calle (centro)</button>
     <p class="note">Doble clic en el suelo para pararte ahí a 1.6 m, mirando en la misma dirección.</p>
@@ -99,7 +100,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const AREAS = {
-  downtown: ['Downtown', 29.7589, -95.3677], midtown: ['Midtown', 29.7428, -95.3780], montrose: ['Montrose', 29.7442, -95.3906],
+  skyline: ['Skyline desde White Oak Bayou', 29.765, -95.3685, { cam: [29.7754, -95.3659, 16], look: [29.7585, -95.3683, 100], lens: 50, sun: [70, 32] }],
+  downtown: ['Downtown (aérea)', 29.765, -95.3685, { cam: [29.7505, -95.3795, 420], look: [29.7595, -95.3665, 40], lens: 28, sun: [225, 38] }, 'skyline'], midtown: ['Midtown', 29.7428, -95.3780], montrose: ['Montrose', 29.7442, -95.3906],
   uptown: ['Uptown / Galleria', 29.7499, -95.4613], tmc: ['Texas Medical Center', 29.7068, -95.3990], heights: ['The Heights', 29.7980, -95.3990],
   'i10-i45': ['Freeway · I-10 / I-45', 29.7690, -95.3700], 'i10-i69': ['Freeway · I-10 / I-69', 29.7675, -95.3530],
   '610-i69': ['Freeway · 610 / I-69 (Galleria)', 29.7330, -95.4565], 'i10-610': ['Freeway · I-10 / 610 (Katy)', 29.7835, -95.4560]
@@ -352,10 +354,90 @@ function guessHeight(tags, area, id) {
 
 const BCOL = [0xe6e0d4, 0xd9d4ca, 0xcfc9bd, 0xe9e4da, 0xc9c3b8, 0xd8cfc0, 0xb9c2cb, 0xc8ccd0];
 
+function inRing([x, y], ring) {
+  let c = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+
+const COMPASS = { N: 0, NNE: 22.5, NE: 45, ENE: 67.5, E: 90, ESE: 112.5, SE: 135, SSE: 157.5, S: 180, SSW: 202.5, SW: 225, WSW: 247.5, W: 270, WNW: 292.5, NW: 315, NNW: 337.5 };
+
+// A building (or building:part) volume from `base` to `top`, with flat, skillion, gabled or
+// pyramidal/hipped roofs following the OSM roof:* tags. Footprint coords are (east, north).
+function prism(ring, holes, base, top, t, toShape) {
+  const shape = t['roof:shape'];
+  if (!/^(skillion|gabled|pyramidal|hipped)$/.test(shape || '') || (shape === 'gabled' && ring.length !== 4)) {
+    const g = new THREE.ExtrudeGeometry(toShape(ring, holes), { depth: top - base, bevelEnabled: false });
+    g.rotateX(-Math.PI / 2); g.translate(0, base, 0);
+    return g;
+  }
+  if (ringArea(ring) < 0) ring = ring.slice().reverse();      // counter-clockwise
+  const edge = i => { const a = ring[i], b = ring[(i + 1) % ring.length]; return [b[0] - a[0], b[1] - a[1]]; };
+  const longest = ring.map((_, i) => i).sort((i, j) => Math.hypot(...edge(j)) - Math.hypot(...edge(i)))[0];
+  const short = Math.min(...ring.map((_, i) => Math.hypot(...edge(i))));
+  let rh = parseFloat(t['roof:height']);
+  if (!(rh > 0)) rh = shape === 'skillion' ? short * 0.25 : short * 0.45;
+  rh = Math.min(rh, (top - base) * 0.9);
+  const eave = top - rh;
+
+  const pos = [];
+  const V = (p, y) => new THREE.Vector3(p[0], y, -p[1]);
+  const face = (vs, out) => {   // convex polygon fan, wound to face `out`
+    const n = new THREE.Vector3().subVectors(vs[1], vs[0]).cross(new THREE.Vector3().subVectors(vs[2], vs[0]));
+    if (n.dot(out) < 0) vs = vs.slice().reverse();
+    for (let i = 1; i < vs.length - 1; i++) for (const v of [vs[0], vs[i], vs[i + 1]]) pos.push(v.x, v.y, v.z);
+  };
+  const outward = i => { const [dx, dn] = edge(i); return new THREE.Vector3(dn, 0, dx); };
+  const up = new THREE.Vector3(0, 1, 0), down = new THREE.Vector3(0, -1, 0);
+  const tris = THREE.ShapeUtils.triangulateShape(ring.map(([x, y]) => new THREE.Vector2(x, y)), []);
+  const cap = (hOf, out) => tris.forEach(([a, b, c]) => face([V(ring[a], hOf(a)), V(ring[b], hOf(b)), V(ring[c], hOf(c))], out));
+  cap(() => base, down);
+
+  if (shape === 'skillion') {
+    // roof:direction = compass bearing the slope faces (downhill); default: across the longest wall
+    let dir = t['roof:direction'];
+    dir = dir in COMPASS ? COMPASS[dir] : parseFloat(dir);
+    let d;
+    if (isFinite(dir)) d = [Math.sin(dir * Math.PI / 180), Math.cos(dir * Math.PI / 180)];
+    else { const [dx, dn] = edge(longest), L = Math.hypot(dx, dn); d = [dn / L, -dx / L]; }
+    const s = ring.map(p => p[0] * d[0] + p[1] * d[1]), s0 = Math.min(...s), s1 = Math.max(...s);
+    const hv = s.map(v => top - rh * (v - s0) / Math.max(1e-6, s1 - s0));
+    ring.forEach((_, i) => { const j = (i + 1) % ring.length; face([V(ring[i], base), V(ring[j], base), V(ring[j], hv[j]), V(ring[i], hv[i])], outward(i)); });
+    cap(i => hv[i], up);
+  } else if (shape === 'gabled') {
+    // ridge parallel to the longer pair of opposite walls
+    const k = Math.hypot(...edge(0)) + Math.hypot(...edge(2)) >= Math.hypot(...edge(1)) + Math.hypot(...edge(3)) ? 0 : 1;
+    const p = [0, 1, 2, 3].map(i => ring[(i + k) % 4]);
+    const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const m1 = mid(p[1], p[2]), m3 = mid(p[3], p[0]);
+    ring.forEach((_, i) => { const j = (i + 1) % 4; face([V(ring[i], base), V(ring[j], base), V(ring[j], eave), V(ring[i], eave)], outward(i)); });
+    const o = i => outward((i + k) % 4);
+    face([V(p[1], eave), V(p[2], eave), V(m1, top)], o(1));
+    face([V(p[3], eave), V(p[0], eave), V(m3, top)], o(3));
+    face([V(p[0], eave), V(p[1], eave), V(m1, top), V(m3, top)], o(0).add(up));
+    face([V(p[2], eave), V(p[3], eave), V(m3, top), V(m1, top)], o(2).add(up));
+  } else {
+    // pyramidal (hipped is drawn the same way: close enough at city scale)
+    const c = [ring.reduce((s, q) => s + q[0], 0) / ring.length, ring.reduce((s, q) => s + q[1], 0) / ring.length];
+    ring.forEach((_, i) => {
+      const j = (i + 1) % ring.length;
+      face([V(ring[i], base), V(ring[j], base), V(ring[j], eave), V(ring[i], eave)], outward(i));
+      face([V(ring[i], eave), V(ring[j], eave), V(c, top)], outward(i).add(up));
+    });
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
 function build(data) {
   scene.remove(city); city.traverse(o => { o.geometry?.dispose(); });
   city = new THREE.Group(); scene.add(city);
-  const bGeo = [], roadGeo = [], walkGeo = [], parkGeo = [], waterGeo = [], trees = [], roads = [];
+  const bGeo = [], roadGeo = [], walkGeo = [], railGeo = [], parkGeo = [], waterGeo = [], trees = [], roads = [];
   let bid = 10;
 
   const toShape = (outer, holes = []) => {
@@ -365,6 +447,21 @@ function build(data) {
     return s;
   };
   const inside = ([x, y]) => Math.abs(x) < radius * 1.15 && Math.abs(y) < radius * 1.15;
+
+  // Simple 3D Buildings: when an outline contains building:part pieces, the parts carry the
+  // real shape (setbacks, towers, roofs) and the outline must not be drawn on top of them.
+  const partPts = [];
+  for (const el of data.elements) {
+    const pt = el.tags?.['building:part'];
+    if (!pt || pt === 'no' || !el.geometry) continue;
+    const r = el.geometry.map(g => project(g.lat, g.lon));
+    partPts.push([r.reduce((s, p) => s + p[0], 0) / r.length, r.reduce((s, p) => s + p[1], 0) / r.length]);
+  }
+  const hasParts = ring => {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const [x, y] of ring) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    return partPts.some(p => p[0] > x0 && p[0] < x1 && p[1] > y0 && p[1] < y1 && inRing(p, ring));
+  };
 
   for (const el of data.elements) {
     const t = el.tags || {};
@@ -376,38 +473,54 @@ function build(data) {
     }
     if (el.type === 'node' && t.natural === 'tree') { const p = project(el.lat, el.lon); if (inside(p)) trees.push(p); continue; }
 
-    if (t.building || t['building:part']) {
-      if (t['building:part'] && !t.building && !t.height && !t['building:levels']) continue;
+    const isPartTag = t['building:part'] && t['building:part'] !== 'no';
+    if (t.building || isPartTag) {
       for (let ring of rings) {
         if (ring.length < 4 || !inside(ring[0])) continue;
         ring = ring.slice(0, -1);
+        if (!isPartTag && partPts.length && hasParts(ring)) continue;
         const area = Math.abs(ringArea(ring));
         if (area < 4) continue;
         const h = guessHeight(t, area, el.id);
-        const minH = parseFloat(t.min_height) || 0;
-        const g = new THREE.ExtrudeGeometry(toShape(ring, holes.map(r => r.slice(0, -1))), { depth: Math.max(1, h - minH), bevelEnabled: false });
-        g.rotateX(-Math.PI / 2); g.translate(0, minH, 0);
+        const minH = parseFloat(t.min_height) || (parseFloat(t['building:min_level']) || 0) * 3.4;
+        if (h - minH < 0.5) continue;
+        const g = prism(ring, holes.map(r => r.slice(0, -1)), minH, h, t, toShape);
         const col = t['building:colour'] ? new THREE.Color(t['building:colour']).getHex() : BCOL[Math.floor(rnd(el.id + 3) * BCOL.length)];
-        bGeo.push(setColor(addAttrs(g.toNonIndexed ? g : g, bid++, 1), col));
+        bGeo.push(setColor(addAttrs(g, bid++, 1), col));
       }
       continue;
     }
-    if (t.highway && el.geometry && el.type === 'way') {
-      let W = ROAD_W[t.highway];
-      if (!W || (t.tunnel && t.tunnel !== 'no')) continue;
+    if ((t.highway || /^(rail|light_rail)$/.test(t.railway || '')) && el.geometry && el.type === 'way') {
+      if (t.tunnel && t.tunnel !== 'no') continue;
+      const kind = t.railway ? 'rail' : WALK.has(t.highway) ? 'walk' : 'road';
+      let W = t.railway ? (t.railway === 'rail' ? 4 : 3.5) : ROAD_W[t.highway];
+      if (!W) continue;
       const lanes = parseInt(t.lanes);
-      if (lanes > 0 && !WALK.has(t.highway)) W = Math.max(W, lanes * 3.7 + (/motorway|trunk/.test(t.highway) ? 3 : 1));
-      roads.push({ t, W, nodes: el.nodes, pts: el.geometry.map(g => project(g.lat, g.lon)) });
+      if (lanes > 0 && kind === 'road') W = Math.max(W, lanes * 3.7 + (/motorway|trunk/.test(t.highway) ? 3 : 1));
+      roads.push({ t, W, kind, nodes: el.nodes, pts: el.geometry.map(g => project(g.lat, g.lon)) });
       continue;
     }
-    const isPark = /park|garden|pitch/.test(t.leisure || '') || /grass|recreation_ground/.test(t.landuse || '');
+    const isWood = /wood|scrub/.test(t.natural || '');
+    const isPark = isWood || /park|garden|pitch|dog_park/.test(t.leisure || '') || /grass|recreation_ground/.test(t.landuse || '');
     const isWater = t.natural === 'water';
     if ((isPark || isWater) && rings.length) {
       for (let ring of rings) {
         if (ring.length < 4) continue;
         const g = new THREE.ShapeGeometry(toShape(ring.slice(0, -1), holes.map(r => r.slice(0, -1))));
         g.rotateX(-Math.PI / 2); g.translate(0, isWater ? 0.04 : 0.06, 0);
-        (isWater ? waterGeo : parkGeo).push(g);
+        if (isWater) { waterGeo.push(g); continue; }
+        if (isWood) setColor(g, 0x7fa266);
+        parkGeo.push(g);
+        // OSM only maps a few individual trees, so scatter some inside woods and parks (deterministic per element)
+        if (t.leisure !== 'pitch' && trees.length < 9000) {
+          const r2 = ring.slice(0, -1), area = Math.abs(ringArea(r2)), want = Math.min(1500, area / (isWood ? 70 : 420));
+          let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+          for (const [x, y] of r2) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+          for (let k = 0, got = 0; k < want * 4 && got < want; k++) {
+            const p = [x0 + rnd(el.id * 0.37 + k * 1.7) * (x1 - x0), y0 + rnd(el.id * 0.73 + k * 2.3) * (y1 - y0)];
+            if (inside(p) && inRing(p, r2)) { trees.push(p); got++; }
+          }
+        }
       }
     }
     if (t.waterway && el.geometry && ['river', 'stream', 'canal'].includes(t.waterway)) {
@@ -416,7 +529,7 @@ function build(data) {
   }
 
   const deckGeo = [], pierGeo = [];
-  bid = buildRoads(roads, roadGeo, walkGeo, deckGeo, pierGeo, bid);
+  bid = buildRoads(roads, roadGeo, walkGeo, railGeo, deckGeo, pierGeo, bid);
 
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
   const addMerged = (list, id, color, win, cast) => {
@@ -429,6 +542,7 @@ function build(data) {
   addMerged(bGeo.map(g => g.index ? g.toNonIndexed() : g), 0, 0xdddddd, 1, true);
   addMerged(roadGeo, 2, 0x8d9096, 0, false);
   addMerged(walkGeo, 3, 0xc4c0b6, 0, false);
+  addMerged(railGeo, 8, 0x6e675d, 0, false);
   addMerged(parkGeo, 4, 0x9dbb7c, 0, false);
   addMerged(waterGeo, 5, 0x7aa6c8, 0, false);
   addMerged(deckGeo, 6, 0xc9c6bd, 0, true);
@@ -467,7 +581,7 @@ function nodeHeights(roads) {
   const link = (a, b, d) => { if (!adj.has(a)) adj.set(a, []); adj.get(a).push([b, d]); };
   for (const r of roads) {
     const br = r.t.bridge && r.t.bridge !== 'no';
-    const H = br ? Math.max(1, parseInt(r.t.layer) || 1) * (WALK.has(r.t.highway) ? 5 : LAYER_H) : 0;
+    const H = br ? Math.max(1, parseInt(r.t.layer) || 1) * (r.kind === 'walk' ? 5 : LAYER_H) : 0;
     r.nodes.forEach((n, i) => {
       if (H > (h.get(n) || 0)) h.set(n, H);
       if (i) { const [x1, y1] = r.pts[i - 1], [x2, y2] = r.pts[i], d = Math.hypot(x2 - x1, y2 - y1); link(n, r.nodes[i - 1], d); link(r.nodes[i - 1], n, d); }
@@ -534,41 +648,42 @@ function strip(Ls, Rs, bot, top, topCol, sideCol) {
   return g;
 }
 
-function buildRoads(roads, roadGeo, walkGeo, deckGeo, pierGeo, bid) {
+function buildRoads(roads, roadGeo, walkGeo, railGeo, deckGeo, pierGeo, bid) {
   const H = nodeHeights(roads);
   for (const r of roads) {
-    const walk = WALK.has(r.t.highway), hs = r.nodes.map(n => H.get(n) || 0);
+    const walk = r.kind === 'walk', rail = r.kind === 'rail', hs = r.nodes.map(n => H.get(n) || 0);
     // split the way into ground runs (flat ribbons) and elevated runs (decks)
     let run = [0];
     const flush = (elev) => {
       if (run.length < 2) return;
       const pts = run.map(i => r.pts[i]), h = run.map(i => hs[i]);
-      if (!elev) { (walk ? walkGeo : roadGeo).push(...ribbon(pts, r.W, walk ? 0.14 : 0.1)); return; }
+      if (!elev) { (walk ? walkGeo : rail ? railGeo : roadGeo).push(...ribbon(pts, r.W, walk ? 0.14 : rail ? 0.16 : 0.1)); return; }
       const top = h.map(v => Math.max(v, 0) + 0.15), bot = top.map(v => v - DECK_T);
       const [L, R] = offsets(pts, r.W);
       const id = bid++;
-      deckGeo.push(addAttrs(strip(L, R, bot, top, walk ? 0xc4c0b6 : 0x8d9096, 0xc9c6bd), id, 0));
-      if (!walk) {  // parapets
+      deckGeo.push(addAttrs(strip(L, R, bot, top, walk ? 0xc4c0b6 : rail ? 0x6e675d : 0x8d9096, rail ? 0x8a7f70 : 0xc9c6bd), id, 0));
+      if (!walk && !rail) {  // parapets
         const [Li] = offsets(pts, r.W - 0.7), [, Ri] = offsets(pts, r.W - 0.7);
         const pt = top.map(v => v + 1.0);
         deckGeo.push(addAttrs(strip(L, Li, top, pt, 0xd3d0c7, 0xd3d0c7), id, 0));
         deckGeo.push(addAttrs(strip(Ri, R, top, pt, 0xd3d0c7, 0xd3d0c7), id, 0));
       }
-      // piers every ~32 m where the deck is high enough to need them
-      let acc = 16;
+      // piers every ~32 m where the deck is high enough to need them (rail trestles: dense timber bents)
+      const step = rail ? 7 : 32;
+      let acc = step / 2;
       for (let k = 0; k < pts.length - 1; k++) {
         const [x1, y1] = pts[k], [x2, y2] = pts[k + 1], d = Math.hypot(x2 - x1, y2 - y1);
         while (acc < d) {
           const f = acc / d, x = x1 + (x2 - x1) * f, y = y1 + (y2 - y1) * f, hp = bot[k] + (bot[k + 1] - bot[k]) * f;
           if (hp > 3) {
-            const nx = -(y2 - y1) / d, ny = (x2 - x1) / d, s = walk ? 0.6 : 1.8;
-            const cols = r.W > 13 ? [-r.W / 4, r.W / 4] : [0];
+            const nx = -(y2 - y1) / d, ny = (x2 - x1) / d, s = walk ? 0.6 : rail ? 0.5 : 1.8;
+            const cols = rail ? [-1.3, 1.3] : r.W > 13 ? [-r.W / 4, r.W / 4] : [0];
             for (const o of cols) {
               const g = new THREE.BoxGeometry(s, hp, s).translate(x + nx * o, hp / 2, -(y + ny * o));
               pierGeo.push(g);
             }
           }
-          acc += 32;
+          acc += step;
         }
         acc -= d;
       }
@@ -603,7 +718,7 @@ const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.k
 async function loadLive(lat, lon, R = 350) {
   const dlat = R / 111320, dlon = R / (111320 * Math.cos(lat * Math.PI / 180));
   const bb = `${lat - dlat},${lon - dlon},${lat + dlat},${lon + dlon}`;
-  const q = `[out:json][timeout:60];(way["building"](${bb});relation["building"](${bb});way["highway"](${bb});way["leisure"~"park|garden|pitch"](${bb});way["landuse"~"grass|recreation_ground"](${bb});way["natural"="water"](${bb});way["waterway"](${bb});node["natural"="tree"](${bb}););out geom;`;
+  const q = `[out:json][timeout:60];(way["building"](${bb});relation["building"](${bb});way["building:part"](${bb});relation["building:part"](${bb});way["highway"](${bb});way["railway"~"rail|light_rail"](${bb});way["leisure"~"park|garden|pitch"](${bb});way["landuse"~"grass|recreation_ground"](${bb});way["natural"~"water|wood|scrub"](${bb});way["waterway"](${bb});node["natural"="tree"](${bb}););out geom;`;
   for (const ep of OVERPASS) {
     try {
       const r = await fetch(ep, { method: 'POST', body: 'data=' + encodeURIComponent(q) });
@@ -613,9 +728,9 @@ async function loadLive(lat, lon, R = 350) {
   throw new Error('Overpass no respondió');
 }
 async function loadArea(key) {
-  const [name, lat, lon] = AREAS[key];
+  const [name, lat, lon, , file = key] = AREAS[key];
   status('Cargando ' + name + '…');
-  try { const r = await fetch(`${BASE}data/${key}.json`); if (r.ok) return await r.json(); } catch (e) { /* no local copy */ }
+  try { const r = await fetch(`${BASE}data/${file}.json`); if (r.ok) return await r.json(); } catch (e) { /* no local copy */ }
   status('Pidiendo ' + name + ' a OpenStreetMap…');
   return loadLive(lat, lon, key.includes('-') ? 550 : 450);
 }
@@ -624,8 +739,20 @@ async function show(data) {
   $('lat').value = data.lat.toFixed(5); $('lon').value = data.lon.toFixed(5);
   status('Construyendo 3D…');
   await new Promise(r => setTimeout(r, 20));
+  const S = Math.min(1600, radius * 1.25);
+  Object.assign(sun.shadow.camera, { left: -S, right: S, top: S, bottom: -S });
+  sun.shadow.camera.updateProjectionMatrix();
   build(data);
-  aerial();
+  const v = AREAS[$('area').value]?.[3];
+  $('preset').hidden = !v;
+  v ? applyView(v) : aerial();
+}
+function applyView(v) {
+  const [x, n] = project(v.cam[0], v.cam[1]), [tx, tn] = project(v.look[0], v.look[1]);
+  camera.position.set(x, v.cam[2], -n);
+  controls.target.set(tx, v.look[2], -tn); controls.update();
+  if (v.lens) { $('lens').value = v.lens; $('lens').dispatchEvent(new Event('input')); }
+  if (v.sun) { $('az').value = v.sun[0]; $('el').value = v.sun[1]; $('az').dispatchEvent(new Event('input')); $('el').dispatchEvent(new Event('input')); }
 }
 
 // ---------- camera ----------
@@ -707,6 +834,7 @@ $('modes').onclick = e => {
   U.mode.value = +b.dataset.m;
 };
 $('aerial').onclick = aerial;
+$('preset').onclick = () => { const v = AREAS[$('area').value]?.[3]; if (v) applyView(v); };
 $('street').onclick = () => standAt(0, radius * 0.1, new THREE.Vector3(0, 0, -1));
 $('png').onclick = () => {
   renderFrame();
@@ -726,7 +854,7 @@ $('go').onclick = async () => {
 
 window.scout = { camera, controls, THREE }; // handy for debugging from the console
 resize();
-show(await loadArea('downtown')).catch(e => status('Error: ' + e.message));
+show(await loadArea('skyline')).catch(e => status('Error: ' + e.message));
 loop();
 </script>
 </body>
